@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Hello World Streaming JSON Client</title>
+  <script src="https://rawgit.com/jimhigson/oboe.js/master/dist/oboe-browser.min.js"></script>
+</head>
+
+<body>
+  <button type="button"></button>
+  <script>
+    const counter = { value: 0, done: false }
+    const renderNext = (data, n) => () => {
+      document.querySelector('button').innerText = `press to stop ${n}`
+      document.body.insertAdjacentHTML('beforeEnd', `<p>${data.hello}</p>`)
+    }
+    oboe(`/api/http${window.location.search}`)
+      .node({
+        '![*]': function (data) {
+          window.requestAnimationFrame(renderNext(data, counter.value += 1))
+          if (counter.done === true) {
+            return this.abort()
+          }
+          // clear it from memory since we don't have a #done
+          return oboe.drop;
+        }
+      })
+
+    document.querySelector('button').addEventListener('click', () => counter.done = true)
+  </script>
+</body>
+
+</html>

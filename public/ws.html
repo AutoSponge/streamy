@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Client</title>
+</head>
+
+<body>
+    <button type="button"></button>
+    <script>
+        var ws = new WebSocket('ws://localhost:4000/ws')
+        const counter = { value: 0, done: false }
+        const renderNext = (data, n) => () => {
+            document.querySelector('button').innerText = `press to stop ${n}`
+            document.body.insertAdjacentHTML('beforeEnd', `<p>${data.hello}</p>`)
+        }
+
+        ws.onopen = () => {
+            ws.send('another one!')
+        }
+
+        ws.onerror = () => {
+            console.log('Error connecting!')
+        }
+
+        ws.onmessage = (event, flags) => {
+            window.requestAnimationFrame(renderNext(JSON.parse(event.data), counter.value += 1))
+            ws.send('another one!')
+        }
+
+        ws.onclose = (code, message) => {
+            console.log('Disconnection: ', code, message)
+        }
+
+        // The browser should really do this for you when you close or reload the page.
+        // However, you can make sure a close frame is sent by doing capturing the beforeunload event
+        window.onbeforeunload = () => {
+            ws.onclose = () => { }; // disable onclose handler first
+            ws.close()
+        };
+
+        document.querySelector('button').addEventListener('click', () => ws.close())
+    </script>
+</body>
+
+</html>

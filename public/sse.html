@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SSE client</title>
+</head>
+
+<body>
+    <button type="button"></button>
+    <script>
+        const counter = { value: 0 }
+        const es = new EventSource('/sse')
+        const renderNext = (data, n) => () => {
+            document.querySelector('button').innerText = `press to stop ${n}`
+            document.body.insertAdjacentHTML('beforeEnd', `<p>${data.hello}</p>`)
+        }
+        const listener = ({ data }) => window.requestAnimationFrame(renderNext(JSON.parse(data), counter.value += 1))
+        es.addEventListener('message', listener)
+        es.addEventListener('error', (error) => console.log(error))
+
+        document.querySelector('button').addEventListener('click', () => es.close())
+
+    </script>
+</body>
+
+</html>
