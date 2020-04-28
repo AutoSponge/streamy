@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+  <title>Page Title</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <!-- <link rel='stylesheet' type='text/css' media='screen' href='main.css'> -->
+</head>
+<body>
+  <x-elm></x-elm>
+  <script>
+// https://developer.mozilla.org/en-US/docs/Web/API/TransformStream
+class TextDecoderStream extends TransformStream {
+  constructor(encoding = 'utf8') { // utf16 for emojis?
+    super({
+      start(){
+        this.decoder = new TextDecoder(encoding)
+      },
+      transform(chunk, controller) {
+        controller.enqueue(this.decoder.decode(chunk, { stream: true }))
+      }
+    })
+  }
+  get encoding() {
+    return this.decoder.encoding
+  }
+}
+
+class X extends HTMLElement {
+	async connectedCallback() {
+		const shadowRoot = this.attachShadow({ mode: 'open' });
+
+    shadowRoot.innerHTML = `<button type="button">stahp</button>`;
+    const button = shadowRoot.querySelector('button')
+
+    var controller = new AbortController();
+    var signal = controller.signal;
+    button.addEventListener('click', function() {
+      controller.abort();
+      console.log('Download stahped!');
+    });
+
+    const writer = document.implementation.createHTMLDocument(
+			'shadow-stream'
+    );
+    this.writer = writer;
+		this.writer.open();
+		this.writer.write('<div style="height: 500px; overflow: scroll;">');
+    shadowRoot.appendChild(this.writer.body.firstChild);
+    
+    var count = 0;
+    const decoder = new TextDecoderStream();
+    const queuingStrategy = new CountQueuingStrategy({ highWaterMark: 1 });
+    const writableStream = new WritableStream({
+      write(chunk) {
+        console.log('chunk', count++)
+        return writer.write(chunk);
+      },
+      close() {
+        return writer.close();
+      },
+      abort(err) {
+        console.log("Sink error:", err);
+      }
+    }, queuingStrategy);
+
+		const res = await fetch(
+			'http://localhost:4000/api/html', {signal}
+    );
+    res.body.pipeThrough(decoder).pipeTo(writableStream);
+	}
+}
+
+customElements.define('x-elm', X);
+  </script>
+</body>
+</html>
