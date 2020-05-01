@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+  <title>Page Title</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+<body>
+  <x-elm href="http://localhost:4000/api/html"></x-elm>
+  <script>
+class TextDecoderStream extends TransformStream {
+  constructor(encoding = "utf8") {
+    super({
+      start() {
+        this.decoder = new TextDecoder(encoding);
+      },
+      transform(chunk, controller) {
+        controller.enqueue(this.decoder.decode(chunk, { stream: true }));
+      },
+    });
+  }
+}
+
+class HTMLWritableStream extends WritableStream {
+  constructor(sink, signal = {}) {
+    super({
+      write(chunk) {
+        if (signal.aborted) return;
+        return new Promise((resolve) => {
+          requestAnimationFrame(() => {
+            sink.write(chunk);
+            resolve();
+          });
+        });
+      },
+      close() {
+        sink.close();
+      },
+      abort() {
+        this.close();
+      },
+    });
+  }
+}
+
+class X extends HTMLElement {
+  constructor() {
+    super();
+    this.sink = document.implementation.createHTMLDocument();
+    this.controller = new AbortController();
+    this.decoder = new TextDecoderStream();
+    this.writableStream = new HTMLWritableStream(this.sink, this.signal);
+  }
+  connectedCallback() {
+    const href = this.getAttribute("href");
+    if (!href) return;
+    if (!this.isConnected) return;
+    const shadowRoot = this.attachShadow({ mode: "open" });
+    shadowRoot.innerHTML = `<button type="button">stop</button>`;
+    const button = shadowRoot.querySelector("button");
+
+    const { signal, abort } = this.controller;
+    button.addEventListener("click", abort.bind(this.controller));
+
+    this.sink.open();
+    this.sink.write('<div style="height: 500px; overflow: scroll;">');
+    shadowRoot.appendChild(document.adoptNode(this.sink.body.firstChild));
+
+    fetch(href, { signal })
+      .then((res) =>
+        res.body.pipeThrough(this.decoder).pipeTo(this.writableStream)
+      )
+      .catch(console.log);
+  }
+  disconnectedCallback() {
+    this.controller.abort();
+  }
+}
+
+customElements.define("x-elm", X);
+  </script>
+</body>
+</html>
