@@ -12,7 +12,7 @@
   <script>
 // https://developer.mozilla.org/en-US/docs/Web/API/TransformStream
 class TextDecoderStream extends TransformStream {
-  constructor(encoding = 'utf8') { // utf16 for emojis?
+  constructor(encoding = 'utf8') {
     super({
       start(){
         this.decoder = new TextDecoder(encoding)
@@ -31,14 +31,14 @@ class X extends HTMLElement {
 	async connectedCallback() {
 		const shadowRoot = this.attachShadow({ mode: 'open' });
 
-    shadowRoot.innerHTML = `<button type="button">stahp</button>`;
+    shadowRoot.innerHTML = `<button type="button">stop</button>`;
     const button = shadowRoot.querySelector('button')
 
-    var controller = new AbortController();
-    var signal = controller.signal;
-    button.addEventListener('click', function() {
-      controller.abort();
-      console.log('Download stahped!');
+    this.controller = new AbortController();
+    const {signal} = this.controller;
+    button.addEventListener('click', () => {
+      console.log('stopping');
+      this.controller.abort();
     });
 
     const writer = document.implementation.createHTMLDocument(
@@ -51,20 +51,40 @@ class X extends HTMLElement {
     
     var count = 0;
     const decoder = new TextDecoderStream();
-    const queuingStrategy = new CountQueuingStrategy({ highWaterMark: 1 });
+    // default strategy optional
+    // const queuingStrategy = new CountQueuingStrategy({ highWaterMark: 1 });
     const writableStream = new WritableStream({
       write(chunk) {
+        // prevent writes after abort even when data still being recieved
+        if (signal.aborted) return;
         console.log('chunk', count++)
-        return writer.write(chunk);
+        // writer.write(chunk);
+
+        // maybe waiting for rAF is smoother?
+        // what about only getting a chunk during idle time?
+        return new Promise(resolve => {
+          window.requestAnimationFrame(() => {
+            writer.write(chunk);
+            resolve();
+          });
+        })
+
+        // backpressure
+        // return new Promise(resolve => setTimeout(resolve, 3000))
       },
       close() {
+        console.log('close')
         return writer.close();
       },
       abort(err) {
-        console.log("Sink error:", err);
+        console.log('error', err);
+        this.close();
       }
-    }, queuingStrategy);
+    } /*, queuingStrategy */);
 
+    // probably possible to use a web worker here b/c shared resources:
+    // https://github.com/maxogden/workerstream
+    // https://github.com/developit/greenlet
 		const res = await fetch(
 			'http://localhost:4000/api/html', {signal}
     );
