@@ -5,12 +5,10 @@
   <meta http-equiv='X-UA-Compatible' content='IE=edge'>
   <title>Page Title</title>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <!-- <link rel='stylesheet' type='text/css' media='screen' href='main.css'> -->
 </head>
 <body>
   <x-elm></x-elm>
   <script>
-// https://developer.mozilla.org/en-US/docs/Web/API/TransformStream
 class TextDecoderStream extends TransformStream {
   constructor(encoding = 'utf8') {
     super({
@@ -28,8 +26,8 @@ class TextDecoderStream extends TransformStream {
 }
 
 class X extends HTMLElement {
-	async connectedCallback() {
-		const shadowRoot = this.attachShadow({ mode: 'open' });
+  async connectedCallback() {
+    const shadowRoot = this.attachShadow({ mode: 'open' });
 
     shadowRoot.innerHTML = `<button type="button">stop</button>`;
     const button = shadowRoot.querySelector('button')
@@ -45,51 +43,44 @@ class X extends HTMLElement {
 			'shadow-stream'
     );
     this.writer = writer;
-		this.writer.open();
-		this.writer.write('<div style="height: 500px; overflow: scroll;">');
-    shadowRoot.appendChild(this.writer.body.firstChild);
+    this.writer.open();
+    this.writer.write('<div style="height: 500px; overflow: scroll;">');
+    shadowRoot.appendChild(document.adoptNode(this.writer.body.firstChild));
     
+    // just for the logs
     var count = 0;
     const decoder = new TextDecoderStream();
-    // default strategy optional
-    // const queuingStrategy = new CountQueuingStrategy({ highWaterMark: 1 });
     const writableStream = new WritableStream({
       write(chunk) {
         // prevent writes after abort even when data still being recieved
         if (signal.aborted) return;
         console.log('chunk', count++)
-        // writer.write(chunk);
 
-        // maybe waiting for rAF is smoother?
-        // what about only getting a chunk during idle time?
         return new Promise(resolve => {
           window.requestAnimationFrame(() => {
             writer.write(chunk);
             resolve();
           });
         })
-
-        // backpressure
-        // return new Promise(resolve => setTimeout(resolve, 3000))
       },
       close() {
         console.log('close')
-        return writer.close();
+        writer.close();
       },
       abort(err) {
         console.log('error', err);
         this.close();
       }
-    } /*, queuingStrategy */);
+    });
 
     // probably possible to use a web worker here b/c shared resources:
     // https://github.com/maxogden/workerstream
     // https://github.com/developit/greenlet
-		const res = await fetch(
-			'http://localhost:4000/api/html', {signal}
+    const res = await fetch(
+      'http://localhost:4000/api/html', {signal}
     );
     res.body.pipeThrough(decoder).pipeTo(writableStream);
-	}
+  }
 }
 
 customElements.define('x-elm', X);

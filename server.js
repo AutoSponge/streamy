@@ -85,7 +85,7 @@ const html = {
 	}
 };
 const toHTML = function(obj) {
-	return `<li>${obj.hello} 🚀</li>`;
+	return `<li>${obj.hello}</li>`;
 };
 const processAsHTML = pipe(take(names.hello), map(toHTML), html.stream);
 

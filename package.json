@@ -1,20 +1,20 @@
 {
-  "name": "streamy",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "nodemon ./server.js"
-  },
-  "author": "Paul <pgrenier@gmail.com>",
-  "license": "ISC",
-  "dependencies": {
-    "awaiting": "^2.2.0",
-    "callsite-record": "^4.0.0",
-    "ecstatic": "^2.1.0",
-    "express": "^4.15.2",
-    "faker": "^4.1.0",
-    "fast-json-stringify": "^0.11.0",
-    "transducers": "0.0.3"
-  }
+	"name": "streamy",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"start": "node ./server.js"
+	},
+	"author": "Paul <pgrenier@gmail.com>",
+	"license": "ISC",
+	"dependencies": {
+		"awaiting": "^2.2.0",
+		"callsite-record": "^4.0.0",
+		"ecstatic": "^2.1.0",
+		"express": "^4.15.2",
+		"faker": "^4.1.0",
+		"fast-json-stringify": "^0.11.0",
+		"transducers": "0.0.3"
+	}
 }
